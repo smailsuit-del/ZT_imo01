@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.cookiegames.smartcookie"
     android:installLocation="auto">
 
@@ -47,7 +48,8 @@
         android:requestLegacyExternalStorage="true"
         android:resizeableActivity="true"
         android:roundIcon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        tools:replace="android:allowBackup,android:icon,android:label,android:roundIcon,android:theme,android:usesCleartextTraffic">
 
         <!-- شاشة البحث الجديدة التي ستفتح أولاً -->
         <activity
@@ -84,6 +86,7 @@
             android:launchMode="singleTask"
             android:resizeableActivity="true"
             android:theme="@style/Theme.LightTheme"
+            android:exported="true"
             android:windowSoftInputMode="stateHidden|adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -170,6 +173,7 @@
             android:parentActivityName=".MainActivity"
             android:process=":incognito"
             android:theme="@style/Theme.DarkTheme"
+            android:exported="true"
             android:windowSoftInputMode="stateHidden|adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.INCOGNITO" />
@@ -200,9 +204,10 @@
             </intent-filter>
         </activity>
 
+        <!-- تم تعديل provider إلى fileprovider ليتطابق مع الكود في SmartCookieWebClient -->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.provider"
+            android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
