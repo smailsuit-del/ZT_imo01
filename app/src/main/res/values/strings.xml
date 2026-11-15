@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
 
+    <!-- النصوص الخاصة بشاشة البحث المضافة -->
+    <string name="search_title">Temu Alternatives</string>
+    <string name="url_hint">الصق رابط منتج تيمو هنا...</string>
+    <string name="search_button_text">ابحث عن بدائل</string>
+
+    <!-- النصوص الأصلية للمتصفح -->
     <string name="app_lightning" translatable="false">Lightning</string>
     <string name="ytdl_package_name" translatable="false">com.cookiejarapps.smartcookieweb_ytdl</string>
     <string name="app_desc">A free and open source web browser that blocks ads and trackers</string>
