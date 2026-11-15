@@ -7,9 +7,9 @@ plugins {
 
 android {
     namespace 'com.cookiegames.smartcookie'
-    compileSdk 37
+    compileSdk 34
 
-    lintOptions {
+    lint {
         checkReleaseBuilds false
         abortOnError false
     }
@@ -48,7 +48,6 @@ android {
     testOptions {
         unitTests.all {
             jacoco {
-                // This option needs to be included for robolectric tests
                 includeNoLocationClasses = true
                 excludes = ['jdk.internal.*']
             }
@@ -60,43 +59,48 @@ android {
     productFlavors {
         scMain {
             dimension "capabilities"
-            applicationId "com.nezzer.app" // تم التغيير هنا
+            applicationId "com.nezzer.app"
             resValue "string", "app_name", "Nezzer"
         }
         stable {
             dimension "capabilities"
-            applicationId "com.nezzer.app" // تم التغيير هنا
+            applicationId "com.nezzer.app"
             resValue "string", "app_name", "Nezzer"
         }
         beta {
             dimension 'capabilities'
-            applicationId 'com.nezzer.beta' // تم التغيير هنا
+            applicationId 'com.nezzer.beta'
             resValue "string", "app_name", "Nezzer Beta"
             versionCode 16
             versionName "17.0-beta4"
         }
     }
 
-    lintOptions {
-        abortOnError true
+    packaging {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+            exclude '.readme'
+        }
     }
-
-    packagingOptions {
-        exclude '.readme'
-    }
+    
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+    
     buildFeatures {
         viewBinding = true
         compose = true
         buildConfig = true
         resValues = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
-    }
+}
+
+// إعدادات KSP لحل مشكلة Dagger مع Kotlin
+ksp {
+    arg("dagger.fastInit", "enabled")
+    arg("dagger.formatGeneratedSource", "disabled")
+    arg("dagger.gradle.incremental", "enabled")
 }
 
 jacoco {
@@ -137,8 +141,8 @@ dependencies {
     // proxy support
     implementation "info.guardianproject.netcipher:netcipher-webkit:2.1.0"
 
-    // dependency injection
-    final def daggerVersion = '2.60'
+    // dependency injection (تم تحديث Dagger إلى 2.62)
+    final def daggerVersion = '2.62'
     implementation "com.google.dagger:dagger:$daggerVersion"
     ksp "com.google.dagger:dagger-compiler:$daggerVersion"
     compileOnly 'javax.annotation:jsr250-api:1.0'
@@ -153,7 +157,6 @@ dependencies {
     // proxy support
     implementation 'net.i2p.android:helper:0.9.5'
 
-    //TODO: drop android 4.4 support - no TLS1.2 support on OKhttp3
     implementation ("com.squareup.okhttp3:okhttp"){
         version{
             strictly "3.12.12"
@@ -185,7 +188,7 @@ dependencies {
 
     // memory leak analysis
     final def leakCanaryVersion = '2.13'
-    // debugImplementation "com.squareup.leakcanary:leakcanary-android:$leakCanaryVersion" // تم تعطيل هذا السطر لمنع ظهور تطبيق Leaks
+    // debugImplementation "com.squareup.leakcanary:leakcanary-android:$leakCanaryVersion"
 
     // code editor
     implementation 'com.github.ahmadaghazadeh:CodeEditor:1.0.17'
@@ -197,7 +200,7 @@ dependencies {
     implementation 'androidx.compose.runtime:runtime:1.8.3'
     implementation 'androidx.compose.foundation:foundation:1.8.3'
 
-    // ✅ مكتبة Glide لتحميل الصور من الإنترنت
+    // Glide
     implementation 'com.github.bumptech.glide:glide:4.16.0'
 }
 
