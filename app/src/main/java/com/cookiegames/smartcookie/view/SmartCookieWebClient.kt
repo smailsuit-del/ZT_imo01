@@ -50,6 +50,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.reactivex.Observable
 import io.reactivex.Scheduler
 import io.reactivex.subjects.PublishSubject
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.*
 import java.net.HttpURLConnection
 import java.net.URISyntaxException
@@ -59,6 +61,7 @@ import java.util.regex.Matcher
 import java.util.regex.Pattern
 import java.util.regex.PatternSyntaxException
 import javax.inject.Inject
+import javax.net.ssl.HttpsURLConnection
 import kotlin.math.abs
 
 class SmartCookieWebClient(
@@ -82,6 +85,7 @@ class SmartCookieWebClient(
 
     private var zoomed = false
     private var first = true
+    private var errored = false
     private var initScale = 0f
 
     private var color = "<style>body{background-color:#424242 !important;} h1{color:#ffffff !important;} .error-code{color:#e6e6e6 !important;}</style>"
@@ -201,6 +205,7 @@ class SmartCookieWebClient(
     var version: String? = null
     var author: String? = null
     var description: String? = null
+    var requirements = ArrayList<String>(0)
     val include = ArrayList<Pattern>(0)
 
     private fun installExtension(text: String){
@@ -238,7 +243,7 @@ class SmartCookieWebClient(
             }
         }
 
-        val metadataRegex: Pattern = Pattern.compile("==UserScript==(.*?)==\\/UserScript==", Pattern.DOTALL)
+        val metadataRegex: Pattern = Pattern.compile("==UserScript==(.*?)==/UserScript==", Pattern.DOTALL)
 
         val metadataMatcher: Matcher = metadataRegex.matcher(text)
         var code = ""
@@ -248,8 +253,9 @@ class SmartCookieWebClient(
         }
 
         val inc = TextUtils.join(",", include)
+        val reqs = TextUtils.join(",", requirements)
 
-        javascriptRepository.addJavaScriptIfNotExists(JavaScriptDatabase.JavaScriptEntry(name!!, "", version, author, inc, "", "", "", code, ""))
+        javascriptRepository.addJavaScriptIfNotExists(JavaScriptDatabase.JavaScriptEntry(name!!, "", version, author, inc, "", "", "", code, reqs))
                 .subscribeOn(databaseScheduler)
                 .subscribe { aBoolean: Boolean? ->
                     if (!aBoolean!!) {
@@ -267,6 +273,10 @@ class SmartCookieWebClient(
             author = value
         } else if ("description".equals(field, ignoreCase = true)) {
             description = value
+        } else if ("require".equals(field, ignoreCase = true)) {
+            if (value != null) {
+                requirements.add(value)
+            }
         } else if ("include".equals(field, ignoreCase = true)) {
             urlToPattern(value)?.let {
                 include.add(it)
@@ -282,7 +292,7 @@ class SmartCookieWebClient(
     }
 
     val TLD_REGEX = "^([^:]+://[^/]+)\\\\.tld(/.*)?\$".toRegex()
-    val schemeContainsPattern = Pattern.compile("^\\w+:", Pattern.CASE_INSENSITIVE)
+    val schemeContainsPattern: Pattern = Pattern.compile("^\\w+:", Pattern.CASE_INSENSITIVE)
 
     private fun urlToPattern(patternUrl: String?): Pattern? {
         if (patternUrl == null) return null
@@ -331,7 +341,7 @@ class SmartCookieWebClient(
             }
         }
 
-        if(url.contains(".user.js") && view.isShown){
+        if(url.contains(".user.js") && view.isShown && userPreferences.javaScriptEnabled){
             val builder = MaterialAlertDialogBuilder(activity)
             builder.setTitle(activity.resources.getString(R.string.install_userscript))
             builder.setMessage(activity.resources.getString(R.string.install_userscript_description))
@@ -341,6 +351,9 @@ class SmartCookieWebClient(
                 })()""".trimMargin()) {
                     val extensionSource = it.substring(1, it.length - 1)
                     installExtension(extensionSource)
+                    if(uiController.getTabModel().allTabs.size > 1) {
+                        uiController.tabCloseClicked(uiController.getTabModel().positionOf(uiController.getTabModel().currentTab))
+                    }
                 }
 
             }
@@ -373,9 +386,9 @@ class SmartCookieWebClient(
                 lang = Locale.getDefault().displayLanguage
             }
             when(lang){
-                "pt-BR" -> view.evaluateJavascript("lang = 'pt'; " + translate.provideJs(), null)
-                "pt", "português" -> view.evaluateJavascript("lang = 'pt-PT'; " + translate.provideJs(), null)
-                else -> view.evaluateJavascript("lang = '" + lang + "'; " + translate.provideJs(), null)
+                "pt-BR" -> view.evaluateJavascript("lang = 'pt'; " + translate.provideJs(activity), null)
+                "pt", "português" -> view.evaluateJavascript("lang = 'pt-PT'; " + translate.provideJs(activity), null)
+                else -> view.evaluateJavascript("lang = '" + lang + "'; " + translate.provideJs(activity), null)
             }
         }
 
@@ -385,10 +398,10 @@ class SmartCookieWebClient(
             smartCookieView.titleInfo.setTitle(view.title)
         }
         if (smartCookieView.invertPage) {
-            view.evaluateJavascript(invertPageJs.provideJs(), null)
+            view.evaluateJavascript(invertPageJs.provideJs(activity), null)
         }
         if (userPreferences.darkModeExtension && !WebViewFeature.isFeatureSupported(WebViewFeature.FORCE_DARK)) {
-            view.evaluateJavascript(darkMode.provideJs(), null)
+            view.evaluateJavascript(darkMode.provideJs(activity), null)
         }
 
         if (userPreferences.blockMalwareEnabled) {
@@ -404,7 +417,7 @@ class SmartCookieWebClient(
                 val reload = activity.getString(R.string.error_reload)
                 val error = activity.getString(R.string.malware_message)
 
-                view.loadDataWithBaseURL(null, Utils.buildErrorPage(color, title, error, reload, false), "text/html; charset=utf-8", "UTF-8", null)
+                view.loadDataWithBaseURL(null, buildErrorPage(color, title, error, reload, false), "text/html; charset=utf-8", "UTF-8", null)
                 view.invalidate()
                 view.settings.javaScriptEnabled = userPreferences.javaScriptEnabled
             }
@@ -461,35 +474,11 @@ class SmartCookieWebClient(
             }
         }
         if(userPreferences.cookieBlockEnabled){
-            view.evaluateJavascript(cookieBlock.provideJs(), null)
+            view.evaluateJavascript(cookieBlock.provideJs(activity), null)
         }
 
         if(userPreferences.noAmp){
-            view.evaluateJavascript(noAMP.provideJs(), null)
-        }
-
-        var jsList = emptyList<JavaScriptDatabase.JavaScriptEntry>()
-        javascriptRepository.lastHundredVisitedJavaScriptEntries()
-                .subscribe { list ->
-                    jsList = list
-                }
-
-        for(i in jsList){
-            for(x in i.include!!.split(",")){
-                if(view.url.matches(x.toRegex())){
-                    view.evaluateJavascript(
-                            i.code.replace("""\"""", """"""")
-                                    .replace("\\n", System.lineSeparator())
-                                    .replace("\\t", "")
-                                    .replace("\\u003C", "<")
-                                    .replace("""/"""", """"""")
-                                    .replace("""//"""", """/"""")
-                                    .replace("""\\'""", """\'""")
-                                    .replace("""\\""""", """\""""")
-                            , null)
-                    break
-                }
-            }
+            view.evaluateJavascript(noAMP.provideJs(activity), null)
         }
     }
 
@@ -502,10 +491,72 @@ class SmartCookieWebClient(
             return false
         }
 
+    override fun onPageCommitVisible(view: WebView?, url: String?) {
+        var jsList = emptyList<JavaScriptDatabase.JavaScriptEntry>()
+        javascriptRepository.lastHundredVisitedJavaScriptEntries()
+            .subscribe { list ->
+                jsList = list
+            }
+
+        for(i in jsList){
+            for(x in i.include!!.split(",")) {
+                if (view?.url?.matches(x.toRegex()) == true) {
+                    GlobalScope.launch {
+                        var requirementJS = ""
+                        if (!i.requirements.isNullOrEmpty()) {
+                            val requirementList = (i.requirements as CharSequence).split(",").map { it.trim() }
+                            try {
+                                for (req in requirementList) {
+                                    val requirementUrl = URL(req)
+                                    val urlConnection: HttpsURLConnection = requirementUrl.openConnection() as HttpsURLConnection
+                                    val br = BufferedReader(InputStreamReader(urlConnection.getInputStream()))
+                                    var line: String?
+                                    val builder = java.lang.StringBuilder()
+                                    while (br.readLine().also { line = it } != null) {
+                                        builder.append(line)
+                                    }
+                                    requirementJS += builder
+                                }
+
+                                activity.runOnUiThread {
+                                    view.evaluateJavascript(
+                                        requirementJS, null
+                                    )
+                                }
+
+                            } catch (e: IOException) {
+                                e.printStackTrace()
+                            }
+
+                            activity.runOnUiThread {
+                                view.evaluateJavascript(
+                                    i.code.replace("""\"""", """"""")
+                                        .replace("\\n", System.lineSeparator())
+                                        .replace("\\t", "")
+                                        .replace("\\u003C", "<")
+                                        .replace("""/"""", """"""")
+                                        .replace("""//"""", """/"""")
+                                        .replace("""\\'""", """\'""")
+                                        .replace("""\\""""", """\"""""), null
+                                )
+                            }
+                        }
+                    }
+
+                    break
+                }
+            }
+        }
+        super.onPageCommitVisible(view, url)
+    }
+
     override fun onLoadResource(view: WebView?, url: String?) {
         //TODO: explore whether this fixes patchy js load on cached reload
         if(smartCookieView.toggleDesktop){
-            view?.evaluateJavascript(setWidenView.provideJs(), null)
+            view?.evaluateJavascript(setWidenView.provideJs(activity), null)
+        }
+        if(userPreferences.cookieBlockEnabled){
+            view?.evaluateJavascript(cookieBlock.provideJs(activity), null)
         }
         super.onLoadResource(view, url)
     }
@@ -519,7 +570,17 @@ class SmartCookieWebClient(
         }
     }
 
+    fun reloadIncludingErrorPage(view: WebView?){
+        if(errored){
+            view?.loadUrl(currentUrl)
+        }
+        else{
+            view?.reload()
+        }
+    }
+
     override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+        errored = true
         if(isPackageInstalled(activity.resources.getString(R.string.ytdl_package_name), activity.packageManager) && stringContainsItemFromList(url, knownUndetectedVideoUrls)){
             activity.findViewById<FrameLayout>(R.id.download_button).visibility = View.VISIBLE
         }
@@ -527,8 +588,8 @@ class SmartCookieWebClient(
             activity.findViewById<FrameLayout>(R.id.download_button).visibility = View.GONE
         }
 
-        if(view.settings?.userAgentString!!.contains("wv")){
-            view.settings?.userAgentString = view.settings?.userAgentString?.replace("; wv", "")
+        if(view.settings.userAgentString!!.contains("wv")){
+            view.settings.userAgentString = view.settings.userAgentString?.replace("; wv", "")
         }
         zoomed = false
         first = true
@@ -536,7 +597,7 @@ class SmartCookieWebClient(
         view.settings.javaScriptEnabled = userPreferences.javaScriptEnabled
 
         if(userPreferences.noAmp){
-            view.evaluateJavascript(noAMP.provideJs(), null)
+            view.evaluateJavascript(noAMP.provideJs(activity), null)
             if(url.contains("&ampcf=1")){
                 view.evaluateJavascript("window.location.replace(\"" + url.replace("&ampcf=1", "") + "\");", null)
             }
@@ -615,9 +676,6 @@ class SmartCookieWebClient(
                         }, 100)
                     }
                 }
-        }
-        if(userPreferences.cookieBlockEnabled){
-            view.evaluateJavascript(cookieBlock.provideJs(), null)
         }
         if (userPreferences.javaScriptChoice === JavaScriptChoice.BLACKLIST) {
             if (userPreferences.javaScriptBlocked !== "" && userPreferences.javaScriptBlocked !== " ") {
@@ -712,8 +770,8 @@ class SmartCookieWebClient(
     }
 
     override fun onReceivedError(webview: WebView, errorCode: Int, error: String, failingUrl: String) {
-
         if(errorCode != -1) {
+            errored = true
             Thread.sleep(500)
             webview.settings.javaScriptEnabled = true
             if (userPreferences.useTheme == AppTheme.LIGHT) {
@@ -758,11 +816,11 @@ class SmartCookieWebClient(
                     zoomScale = newScale
 
                     val textScale = (newScale / initScale)
-                    view.evaluateJavascript(textReflowJs.provideJs() + textScale.toString() + " + 'px'; }());") { isRunning = false }
+                    view.evaluateJavascript(textReflowJs.provideJs(activity) + textScale.toString() + " + 'px'; }());") { isRunning = false }
                 }, 100)
             }
             else{
-                view.evaluateJavascript(textReflowJs.provideJs() + "window.document.documentElement.clientWidth + 'px'; }());") { isRunning = false }
+                view.evaluateJavascript(textReflowJs.provideJs(activity) + "window.document.documentElement.clientWidth + 'px'; }());") { isRunning = false }
             }
         }
     }
