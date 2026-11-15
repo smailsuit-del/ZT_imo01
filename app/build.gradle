@@ -2,14 +2,14 @@ plugins {
     id 'com.google.devtools.ksp'
     id 'com.android.application'
     id 'jacoco'
-    // تم إزالة compose plugin لأنه يخص Kotlin 2.0+ ونحن نستخدم 1.9.24
+    id 'org.jetbrains.kotlin.plugin.compose'
 }
 
 android {
     namespace 'com.cookiegames.smartcookie'
-    compileSdk 34 // تم التعديل من 37 إلى 34
+    compileSdk 37
 
-    lint {
+    lintOptions {
         checkReleaseBuilds false
         abortOnError false
     }
@@ -77,25 +77,23 @@ android {
         }
     }
 
-    packaging {
-        resources {
-            excludes += '/META-INF/{AL2.0,LGPL2.1}'
-            exclude '.readme'
-        }
+    lintOptions {
+        abortOnError true
     }
-    
+
+    packagingOptions {
+        exclude '.readme'
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
-    
     buildFeatures {
         viewBinding = true
         compose = true
         buildConfig = true
         resValues = true
     }
-    
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
     }
