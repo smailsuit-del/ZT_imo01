@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- ألوان تيمو المضافة -->
+    <color name="temu_orange">#FB7701</color>
+    <color name="temu_orange_dark">#E06B00</color>
+
     <color name="black">#ff000000</color>
     <color name="gray_dark">#222222</color>
     <color name="gray_medium">#cdcdcd</color>
@@ -12,7 +16,6 @@
     <color name="accent_color">#C88C36</color>
 
     <color name="status_bar">#9C9C9C</color>
-
 
     <color name="color_green">#ACDF87</color>
     <color name="color_yellow">#FEFEBE</color>
@@ -29,7 +32,6 @@
 
     <color name="primary_color_dark">#121212</color>
 
-   <!-- <color name="divider_dark">#1FFFFFFF</color>-->
     <color name="divider_dark">#424242</color>
     <color name="divider_light">#1F000000</color>
 
@@ -50,8 +52,6 @@
     <color name="bookmark_default_red">#EF5350</color>
     <color name="bookmark_default_orange">#FF9800</color>
 
-    <!--<color name="ssl_secured">#4CAF50</color>
-    <color name="ssl_unsecured">#F44336</color>-->
     <color name="ssl_secured">#5cb85c</color>
     <color name="ssl_unsecured">#d9534f</color>
 
