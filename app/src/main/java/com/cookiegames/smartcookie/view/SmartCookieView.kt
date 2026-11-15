@@ -413,12 +413,10 @@ class SmartCookieView(
 
             if (!isIncognito || DeviceCapabilities.FULL_INCOGNITO.isSupported) {
                 domStorageEnabled = true
-                setAppCacheEnabled(true)
                 databaseEnabled = true
                 cacheMode = WebSettings.LOAD_DEFAULT
             } else {
                 domStorageEnabled = false
-                setAppCacheEnabled(false)
                 databaseEnabled = false
                 cacheMode = WebSettings.LOAD_NO_CACHE
             }
@@ -430,13 +428,6 @@ class SmartCookieView(
             allowFileAccess = true
             allowFileAccessFromFileURLs = false
             allowUniversalAccessFromFileURLs = false
-
-            getPathObservable("appcache")
-                .subscribeOn(databaseScheduler)
-                .observeOn(mainScheduler)
-                .subscribe { file ->
-                    setAppCachePath(file.path)
-                }
 
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
                 getPathObservable("geolocation")
@@ -891,7 +882,7 @@ class SmartCookieView(
          */
         private var canTriggerLongPress = true
 
-        override fun onFling(e1: MotionEvent, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+        override fun onFling(e1: MotionEvent?, e2: MotionEvent?, velocityX: Float, velocityY: Float): Boolean {
             val power = (velocityY * 100 / maxFling).toInt()
             if (power < -10) {
                 uiController.hideActionBar()
@@ -939,9 +930,9 @@ class SmartCookieView(
 
         private val reference: WeakReference<SmartCookieView> = WeakReference(view)
 
-        override fun handleMessage(msg: Message?) {
+        override fun handleMessage(msg: Message) {
             super.handleMessage(msg)
-            val url = msg?.data?.getString("url")
+            val url = msg.data?.getString("url")
 
             reference.get()?.longClickPage(url)
         }
