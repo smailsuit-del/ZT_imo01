@@ -18,8 +18,8 @@ import javax.inject.Inject
 
 abstract class ThemableBrowserActivity : AppCompatActivity() {
 
-    // TODO reduce protected visibility
-    @Inject protected lateinit var userPreferences: UserPreferences
+    // تم إزالة كلمة protected لحل مشكلة Dagger
+    @Inject lateinit var userPreferences: UserPreferences
 
     private var themeId: AppTheme = AppTheme.LIGHT
     private var showTabsInDrawer: Boolean = false
