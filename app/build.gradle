@@ -96,7 +96,7 @@ android {
     }
 }
 
-// إعدادات KSP لحل مشكلة Dagger مع Kotlin
+// إعدادات KSP لضمان عمل Dagger بشكل صحيح
 ksp {
     arg("dagger.fastInit", "enabled")
     arg("dagger.formatGeneratedSource", "disabled")
@@ -141,8 +141,8 @@ dependencies {
     // proxy support
     implementation "info.guardianproject.netcipher:netcipher-webkit:2.1.0"
 
-    // dependency injection (تم تحديث Dagger إلى 2.62)
-    final def daggerVersion = '2.62'
+    // dependency injection
+    final def daggerVersion = '2.60'
     implementation "com.google.dagger:dagger:$daggerVersion"
     ksp "com.google.dagger:dagger-compiler:$daggerVersion"
     compileOnly 'javax.annotation:jsr250-api:1.0'
