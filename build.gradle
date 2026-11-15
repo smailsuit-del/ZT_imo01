@@ -13,8 +13,8 @@ buildscript {
 }
 
 plugins {
-    // تم تحديث إصدار KSP ليتوافق مع Kotlin 2.4.0
-    id 'com.google.devtools.ksp' version '2.4.0-1.0.29' apply false
+    // تم تصحيح إصدار KSP ليكون 2.3.9 المتوافق رسمياً مع Kotlin 2.4.0
+    id 'com.google.devtools.ksp' version '2.3.9' apply false
 }
 
 allprojects {
