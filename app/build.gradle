@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace 'com.cookiegames.smartcookie'
-    compileSdk 34
+    compileSdk 35 // تم التعديل إلى 35 لتتوافق مع المكتبات الحديثة
 
     lint {
         checkReleaseBuilds false
