@@ -1,29 +1,30 @@
-name: Android CI
+name: Android Manual Build
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  workflow_dispatch: # يضمن أن البناء يعمل يدوياً فقط عند الضغط على الزر
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: set up JDK 15
-      uses: actions/setup-java@v1
-      with:
-        java-version: 15
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-    - name: Build with Gradle
-      run: ./gradlew build
-    - name: Upload APK
-      uses: actions/upload-artifact@v2
-      with:
-        name: app
-        path: app/build/outputs/apk/beta/debug/*.apk
-    
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Stable APK
+        run: ./gradlew assembleStableDebug # يبني نسخة الـ stable فقط
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Temu-App-Stable
+          path: app/build/outputs/apk/stable/debug/*.apk # يجلب ملف الـ APK فقط
