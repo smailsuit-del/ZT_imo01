@@ -1,30 +1,32 @@
 buildscript {
-    // تحديث إصدار Kotlin ليتوافق مع Compose
-    ext.kotlinVersion = '1.9.24' 
+    ext.kotlinVersion = '2.4.0'
     repositories {
         google()
-        mavenCentral() // تم استبدال jcenter هنا
+        mavenCentral()
     }
     dependencies {
-        // تحديث Android Gradle Plugin ليدعم الميزات الحديثة
-        classpath 'com.android.tools.build:gradle:8.5.2' 
+        classpath 'com.android.tools.build:gradle:9.2.1'
         classpath 'com.getkeepsafe.dexcount:dexcount-gradle-plugin:4.0.0'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-        classpath 'com.github.ben-manes:gradle-versions-plugin:0.51.0'
+        classpath 'org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.4.0'
     }
+}
+
+plugins {
+    id 'com.google.devtools.ksp' version '2.3.4' apply false
 }
 
 allprojects {
     repositories {
         google()
-        mavenCentral() // تم استبدال jcenter هنا
+        mavenCentral()
         maven { url "https://jitpack.io" }
+        maven { url "https://maven.mozilla.org/maven2" }
     }
 }
 
 ext {
-    // تحديث الحد الأدنى والأقصى لإصدارات أندرويد لتتوافق مع المكتبات الحديثة
-    minSdkVersion = 21 
-    targetSdkVersion = 34 
-    compileSdkVersion = 34 
+    minSdkVersion = 21
+    targetSdkVersion = 34
+    buildToolsVersion = '31.0.0'
 }
